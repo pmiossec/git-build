@@ -1,7 +1,7 @@
 #!/bin/sh
 
 LOCATION=$(pwd)
-REMOTE=${1:-origin}
+REMOTE=${1:-default}
 BRANCH=$(git symbolic-ref -q HEAD)
 BRANCH=${BRANCH##refs/heads/}
 
@@ -41,7 +41,7 @@ if [ -z "${COMMAND}" ]; then
 fi
 
 # Commit "work in progress"
-git fetch ${REMOTE}
+git tfs fetch -i ${REMOTE}
 git add -A $REPO_DIR && git commit -m "WIP"
 REBASE="$REMOTE/$BRANCH"
 git branch -r | grep -q -c ${REBASE} || REBASE="$REMOTE/master"
@@ -67,7 +67,7 @@ fi
 
 # Push
 REMOTE_URL=$(git remote show -n ${REMOTE} | awk '/Fetch/ {print $3}')
-git push ${REMOTE_URL} ${BRANCH}
+git tfs rcheckin -i ${REMOTE}
 if [ $? -ne 0 ]; then
   alert_user_fail "Unable to push"
 fi
