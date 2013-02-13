@@ -66,6 +66,13 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# Push
+REMOTE_URL=$(git remote show -n ${REMOTE} | awk '/Fetch/ {print $3}')
+git push ${REMOTE_URL} ${BRANCH}
+if [ $? -ne 0 ]; then
+  alert_user_fail "Unable to push"
+fi
+
 # Update working directory
 cd ${LOCATION} && git fetch ${REMOTE}
 alert_user_ok "Yet another successful build!"
