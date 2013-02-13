@@ -29,7 +29,9 @@ function alert_user_fail {
 }
 
 # Get command for build from Git config
+#Example to set command:
 #git config private-build.command "mvn install"
+#and to unset command:
 #git config --remove-section private-build
 COMMAND=$(git config --get private-build.command)
 if [ -z "${COMMAND}" ]; then
