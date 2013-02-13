@@ -1,9 +1,5 @@
 #!/bin/sh
 
-# Dirty hack, which will enable colorization for Maven
-source $DOTFILES/maven/maven.bashrc
-shopt -s expand_aliases
-
 LOCATION=$(pwd)
 REMOTE=${1:-origin}
 BRANCH=$(git symbolic-ref -q HEAD)
