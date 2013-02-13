@@ -45,7 +45,7 @@ git add -A $REPO_DIR && git commit -m "WIP"
 REBASE="$REMOTE/$BRANCH"
 git branch -r | grep -q -c ${REBASE} || REBASE="$REMOTE/master"
 echo "rebase ${REBASE}"
-git rebase ${REBASE}
+git rebase --preserve-merges ${REBASE}
 if [ "$?" -ne 0 ]; then
   git rebase --abort
   rollback_wip
