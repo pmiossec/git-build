@@ -1,0 +1,72 @@
+#!/bin/sh
+
+# Dirty hack, which will enable colorization for Maven
+source $DOTFILES/maven/maven.bashrc
+shopt -s expand_aliases
+
+LOCATION=$(pwd)
+REMOTE=${1:-origin}
+BRANCH=$(git symbolic-ref -q HEAD)
+BRANCH=${BRANCH##refs/heads/}
+
+REPO_DIR="$(git rev-parse --show-toplevel 2>/dev/null)"
+REPO_NAME=${REPO_DIR##*/}
+BUILD_DIR=/tmp/git-private-build/${REPO_NAME}
+
+rollback_wip() {
+  git log -1 | grep -q -c "WIP" && git reset HEAD~1
+}
+
+function alert_user_ok {
+  echo "${1}"
+  command -v notify-send >/dev/null 2>&1 && notify-send -t 3000 --icon=${DOTFILES}/notify/success.png "${REPO_NAME}" "${1}"
+  command -v growlnotify >/dev/null 2>&1 && growlnotify --image ${DOTFILES}/notify/success.png "${REPO_NAME}" -m "${1}"
+  command -v growlnotify.exe >/dev/null 2>&1 && growlnotify.exe //i:"${DOTFILES}\notify\success.png" //t:"Git build [${REPO_NAME}]" "${1}"
+}
+
+function alert_user_fail {
+  echo "${1}"
+  command -v notify-send >/dev/null 2>&1 && notify-send -t 3000 --icon=${DOTFILES}/notify/fail.png "${REPO_NAME}" "${1}"
+  command -v growlnotify >/dev/null 2>&1 && growlnotify --image ${DOTFILES}/notify/fail.png "${REPO_NAME}" -m "${1}"
+  command -v growlnotify.exe >/dev/null 2>&1 && growlnotify.exe //i:"${DOTFILES}\notify\fail.png" //t:"Git build [${REPO_NAME}]" "${1}"
+}
+
+# Get command for build from Git config
+#git config private-build.command "mvn install"
+#git config --remove-section private-build
+COMMAND=$(git config --get private-build.command)
+if [ -z "${COMMAND}" ]; then
+  alert_user_fail "Build command not configured!"
+  exit 1
+fi
+
+# Commit "work in progress"
+git fetch ${REMOTE}
+git add -A $REPO_DIR && git commit -m "WIP"
+REBASE="$REMOTE/$BRANCH"
+git branch -r | grep -q -c ${REBASE} || REBASE="$REMOTE/master"
+echo "rebase ${REBASE}"
+git rebase ${REBASE}
+if [ "$?" -ne 0 ]; then
+  git rebase --abort
+  rollback_wip
+  alert_user_fail "Unable to rebase!"
+  exit 1
+fi
+rollback_wip
+
+# Private clone
+rm -Rf ${BUILD_DIR}
+git clone --local --shared --branch "${BRANCH}" ${REPO_DIR} ${BUILD_DIR}
+
+# Private build
+cd ${BUILD_DIR}
+eval ${COMMAND}
+if [ $? -ne 0 ]; then
+  alert_user_fail "Unable to build!"
+  exit 1
+fi
+
+# Update working directory
+cd ${LOCATION} && git fetch ${REMOTE}
+alert_user_ok "Yet another successful build!"
