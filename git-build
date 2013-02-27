@@ -13,12 +13,13 @@ rollback_wip() {
   git log -1 | grep -q -c "WIP" && git reset HEAD~1
 }
 
-#By convention, we are looking for images name based on the script file name ($0)
+#By convention, we are looking for images name and path based on the script file name and path ($0)
 function alert_user_ok {
   echo "${1}"
   command -v notify-send >/dev/null 2>&1 && notify-send -t 3000 --icon="$0_success.png" "${REPO_NAME}" "${1}"
   command -v growlnotify >/dev/null 2>&1 && growlnotify --image "$0_success.png" "${REPO_NAME}" -m "${1}"
   command -v growlnotify.exe >/dev/null 2>&1 && growlnotify.exe //i:"$0_success.png" //t:"Git build [${REPO_NAME}]" "${1}"
+  exit 0
 }
 
 function alert_user_fail {
@@ -26,6 +27,7 @@ function alert_user_fail {
   command -v notify-send >/dev/null 2>&1 && notify-send -t 3000 --icon="$0_fail.png" "${REPO_NAME}" "${1}"
   command -v growlnotify >/dev/null 2>&1 && growlnotify --image "$0_fail.png" "${REPO_NAME}" -m "${1}"
   command -v growlnotify.exe >/dev/null 2>&1 && growlnotify.exe //i:"$0_fail.png" //t:"Git build [${REPO_NAME}]" "${1}"
+  exit 1
 }
 
 # Get command for build from Git config
@@ -36,7 +38,6 @@ function alert_user_fail {
 COMMAND=$(git config --get private-build.command)
 if [ -z "${COMMAND}" ]; then
   alert_user_fail "Build command not configured!"
-  exit 1
 fi
 
 # Commit "work in progress"
@@ -50,7 +51,6 @@ if [ "$?" -ne 0 ]; then
   git rebase --abort
   rollback_wip
   alert_user_fail "Unable to rebase!"
-  exit 1
 fi
 rollback_wip
 
@@ -63,7 +63,6 @@ cd ${BUILD_DIR}
 eval ${COMMAND}
 if [ $? -ne 0 ]; then
   alert_user_fail "Unable to build!"
-  exit 1
 fi
 
 # Push
