@@ -43,8 +43,8 @@ fi
 # Commit "work in progress"
 git tfs fetch -i ${REMOTE}
 git add -A $REPO_DIR && git commit -m "WIP"
-REBASE="$REMOTE/$BRANCH"
-git branch -r | grep -q -c ${REBASE} || REBASE="$REMOTE/master"
+REBASE="tfs/$REMOTE"
+#git branch -r | grep -q -c ${REBASE} || REBASE="$REMOTE/master"
 echo "rebase ${REBASE}"
 git rebase --preserve-merges ${REBASE}
 if [ "$?" -ne 0 ]; then
@@ -66,12 +66,13 @@ if [ $? -ne 0 ]; then
 fi
 
 # Push
-REMOTE_URL=$(git remote show -n ${REMOTE} | awk '/Fetch/ {print $3}')
-git tfs rcheckin -i ${REMOTE}
+#REMOTE_URL=$(git remote show -n ${REMOTE} | awk '/Fetch/ {print $3}')
+git tfs bootstrap
+git s tfs rcheckin -i ${REMOTE}
 if [ $? -ne 0 ]; then
   alert_user_fail "Unable to push"
 fi
 
 # Update working directory
-cd ${LOCATION} && git fetch ${REMOTE}
+cd ${LOCATION} && git s tfs pull -r -i ${REMOTE}
 alert_user_ok "Yet another successful build!"
