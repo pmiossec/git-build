@@ -18,4 +18,8 @@ Example using maven :
 
 `git config private-build.command "mvn clean install"`
 
+Example using msbuild :
+
+`git config private-build.command "msbuild mybuild.build /t:UnitTests /p:Configuration:Debug"`
+
 * call `git build` each time you want to push!
