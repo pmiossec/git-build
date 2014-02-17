@@ -1,0 +1,49 @@
+#!/bin/sh
+# Use: git mergeable #to verify that the current checkouted branch is mergeable in 'master' (default branch)
+# git mergeable myBranch #to verify that the current checkouted branch is mergeable in 'myBranch'
+
+BRANCH=$(git symbolic-ref -q HEAD)
+BRANCH=${BRANCH##refs/heads/}
+#echo "$BRANCH"
+MERGE_INTO=${1:-master}
+MERGEABLE_BRANCH="#mergeable_$BRANCH"
+
+if [ $BRANCH == $MERGE_INTO ]; then
+  echo "Ok: the branch $MERGE_INTO could be merged in itself ;)"
+  exit 0
+fi
+
+echo "===== Verify mergeability of '$BRANCH' into '$MERGE_INTO' ====="
+
+echo "* Create a stash (if needed)..."
+git stash save --include-untracked "For git-mergeable" | grep 'No local changes to save'
+IS_THERE_STASH=`echo $?`
+
+echo "* Creating temporary branch '$MERGEABLE_BRANCH' to test merge..."
+git checkout -b $MERGEABLE_BRANCH
+
+echo "* Try merging with $MERGE_INTO..."
+git merge $MERGE_INTO
+MERGEABLE=`echo $?`
+
+if [ "$MERGEABLE" -ne 0 ]; then
+  echo "* Abort merge..."
+  git merge --abort
+fi
+
+echo "* Checkout original branch..."
+git checkout $BRANCH
+echo "* Delete temporary branch..."
+git branch -D $MERGEABLE_BRANCH
+
+if  [ "$IS_THERE_STASH" -ne 0 ]; then
+  echo "Pop stash..."
+  git stash pop
+fi
+
+if [ "$MERGEABLE" -ne 0 ]; then
+  echo "==>NONE Mergeable into $MERGE_INTO :(";
+else
+  echo "==>Mergeable into $MERGE_INTO :D";
+fi
+exit $MERGEABLE
